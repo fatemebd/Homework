@@ -6,6 +6,7 @@ import android.content.pm.PackageManager
 import android.net.ConnectivityManager
 import android.net.NetworkInfo
 import android.os.Build
+
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
@@ -20,10 +21,16 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.core.app.ActivityCompat
+import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkManager
 import com.example.homework.ui.theme.HomeworkTheme
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import java.io.File
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
+import java.io.File
+import java.util.concurrent.TimeUnit
 
 class MainActivity : ComponentActivity() {
     private lateinit var connectivityReceiver: ConnectivityReceiver
@@ -36,6 +43,14 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        val workRequest = PeriodicWorkRequestBuilder<StatusWorker>(15, TimeUnit.MINUTES)
+            .build()
+
+        WorkManager.getInstance(this).enqueue(workRequest)
+
+        readLogFile()
+
 
         readLogFile()
 
@@ -122,6 +137,23 @@ class MainActivity : ComponentActivity() {
 
         logList.forEach { logEntry ->
             Log.v("tagA", logEntry.toString())
+        }
+    }
+
+    private fun readLogFile() {
+        val fileName = "log.json"
+        val file = File(filesDir, fileName)
+        val gson = Gson()
+        val logList: MutableList<LogEntry> = if (file.exists()) {
+            val existingLogs = file.readText()
+            val type = object : TypeToken<MutableList<LogEntry>>() {}.type
+            gson.fromJson(existingLogs, type) ?: mutableListOf()
+        } else {
+            mutableListOf()
+        }
+
+        logList.forEach { logEntry ->
+            Log.v("tagB", logEntry.toString())
         }
     }
 }
